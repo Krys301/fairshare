@@ -10,10 +10,10 @@ Chain track: stages 1 to 4. App track: stage 5 runs in parallel with 1 to 4. Bot
 
 ## Stage 0: Repo ready
 
-- [ ] Anchor project named `fairshare` exists, `anchor build` and `anchor test` pass on the starter program
-- [ ] `docs/PRD.md`, `docs/PLAN.md`, `CLAUDE.md`, `.claude/settings.json` in the repo
-- [ ] `.gitignore` covers `target/`, `node_modules/`, `.next/`, `.env`, `*.json` keypairs outside `target/idl`
-- [ ] First commit made, tagged `stage-0`
+- [x] Anchor project named `fairshare` exists, `anchor build` and `anchor test` pass on the starter program
+- [x] `docs/PRD.md`, `docs/PLAN.md`, `CLAUDE.md`, `.claude/settings.json` in the repo
+- [x] `.gitignore` covers `target/`, `node_modules/`, `.next/`, `.env`, `*.json` keypairs outside `target/idl`
+- [x] First commit made, tagged `stage-0`
 
 **Prompt:**
 > Read CLAUDE.md and docs/PLAN.md. We are on stage 0. Verify the Anchor project builds and the starter test passes, check the .gitignore covers everything in the stage 0 checklist, then commit. Don't write any features.
