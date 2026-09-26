@@ -51,10 +51,10 @@ Chain track: stages 1 to 4. App track: stage 5 runs in parallel with 1 to 4. Bot
 
 ## Stage 3: claim_refund, withdraw (chain)
 
-- [ ] `claim_refund`: Finalised → pays amount_paid − final_price; Cancelled → pays amount_paid; marks claimed; rejects double claim
-- [ ] `withdraw`: organiser only, once, Finalised only, takes attendee_count × final_price
-- [ ] **Vault invariant test:** with 10+ attendees at different prices, after everyone claims and the organiser withdraws, vault balance ≥ 0 and all balances add up exactly
-- [ ] Cancelled path test: everyone gets their full deposit back
+- [x] `claim_refund`: Finalised → pays amount_paid − final_price; Cancelled → pays amount_paid; marks claimed; rejects double claim
+- [x] `withdraw`: organiser only, once, Finalised only, takes attendee_count × final_price
+- [x] **Vault invariant test:** with 10+ attendees at different prices, after everyone claims and the organiser withdraws, vault balance ≥ 0 and all balances add up exactly
+- [x] Cancelled path test: everyone gets their full deposit back
 
 **Done when:** `anchor test` passes including the invariant test. Tag `stage-3`.
 
