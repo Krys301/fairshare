@@ -65,9 +65,9 @@ Chain track: stages 1 to 4. App track: stage 5 runs in parallel with 1 to 4. Bot
 
 ## Stage 4: Devnet deploy + demo script (chain)
 
-- [ ] Program deployed to devnet, program ID updated in `Anchor.toml` and `lib.rs`
-- [ ] `scripts/seed-demo.ts`: creates a demo event with a short deadline (e.g. 10 minutes) using devnet USDC, and joins it from 3 test wallets
-- [ ] IDL copied to `app/` for the frontend
+- [x] Program deployed to devnet, program ID updated in `Anchor.toml` and `lib.rs`
+- [x] `scripts/seed-demo.ts`: creates a demo event with a short deadline (e.g. 10 minutes) using devnet USDC, and joins it from 3 test wallets
+- [x] IDL copied to `app/` for the frontend
 
 **Done when:** seed script runs and the event is visible on Solana Explorer (devnet). Tag `stage-4`.
 

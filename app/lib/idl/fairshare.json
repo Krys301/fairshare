@@ -22,6 +22,7 @@
       "accounts": [
         {
           "name": "attendee",
+          "writable": true,
           "signer": true
         },
         {
@@ -487,6 +488,7 @@
       "accounts": [
         {
           "name": "organiser",
+          "writable": true,
           "signer": true
         },
         {
@@ -677,6 +679,11 @@
       "code": 6016,
       "name": "AlreadyWithdrawn",
       "msg": "Organiser has already withdrawn"
+    },
+    {
+      "code": 6017,
+      "name": "DeadlineInPast",
+      "msg": "Deadline must be in the future"
     }
   ],
   "types": [
