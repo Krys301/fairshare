@@ -3,6 +3,7 @@ use anchor_spl::token::{self, InitializeAccount3, Mint, Token, TokenAccount};
 
 use crate::{
     constants::*,
+    error::ErrorCode,
     pricing,
     state::{Event, EventStatus},
 };
@@ -53,6 +54,10 @@ pub fn handle_create_event(
     deadline: i64,
 ) -> Result<()> {
     pricing::validate_params(fixed, per_head, margin_bps, p_min, p_max, n_min, n_max)?;
+    require!(
+        deadline > Clock::get()?.unix_timestamp,
+        ErrorCode::DeadlineInPast
+    );
 
     let event_key = ctx.accounts.event.key();
     let vault_bump = ctx.bumps.vault;

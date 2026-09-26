@@ -36,4 +36,6 @@ pub enum ErrorCode {
     EventNotFinalized,
     #[msg("Organiser has already withdrawn")]
     AlreadyWithdrawn,
+    #[msg("Deadline must be in the future")]
+    DeadlineInPast,
 }

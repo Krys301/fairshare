@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, CloseAccount, Token, TokenAccount, Transfer};
 
 use crate::{
     constants::*,
@@ -9,6 +9,7 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
+    #[account(mut)]
     pub organiser: Signer<'info>,
 
     #[account(
@@ -43,12 +44,14 @@ pub fn handle_withdraw(ctx: Context<Withdraw>) -> Result<()> {
         .checked_mul(event.final_price)
         .ok_or(ErrorCode::Overflow)?;
 
+    let organiser_key = event.organiser;
+    let event_bump = event.bump;
     let event_id_bytes = event.event_id.to_le_bytes();
     let event_seeds: &[&[u8]] = &[
         EVENT_SEED,
-        event.organiser.as_ref(),
+        organiser_key.as_ref(),
         &event_id_bytes,
-        &[event.bump],
+        &[event_bump],
     ];
     let signer_seeds: &[&[&[u8]]] = &[event_seeds];
 
@@ -61,6 +64,25 @@ pub fn handle_withdraw(ctx: Context<Withdraw>) -> Result<()> {
     token::transfer(cpi_ctx, amount)?;
 
     ctx.accounts.event.organiser_withdrawn = true;
+
+    // Best-effort rent reclaim: if every attendee had already claimed their
+    // refund before this withdrawal, the vault is now empty and can be closed.
+    // If some refunds are still unclaimed, leave it open for them to drain.
+    let remaining = ctx
+        .accounts
+        .vault
+        .amount
+        .checked_sub(amount)
+        .ok_or(ErrorCode::Overflow)?;
+    if remaining == 0 {
+        let close_accounts = CloseAccount {
+            account: ctx.accounts.vault.to_account_info(),
+            destination: ctx.accounts.organiser.to_account_info(),
+            authority: ctx.accounts.event.to_account_info(),
+        };
+        let close_ctx = CpiContext::new_with_signer(token::ID, close_accounts, signer_seeds);
+        token::close_account(close_ctx)?;
+    }
 
     Ok(())
 }

@@ -335,6 +335,53 @@ fn create_event_and_three_joins_have_decreasing_price() {
 }
 
 #[test]
+fn create_event_rejects_past_deadline() {
+    let (mut svm, organiser, mint) = setup();
+    let program_id = fairshare::id();
+    let event_id = 1u64;
+    let event = Pubkey::find_program_address(
+        &[
+            EVENT_SEED,
+            organiser.pubkey().as_ref(),
+            &event_id.to_le_bytes(),
+        ],
+        &program_id,
+    )
+    .0;
+    let vault = Pubkey::find_program_address(&[VAULT_SEED, event.as_ref()], &program_id).0;
+
+    let ix = Instruction::new_with_bytes(
+        program_id,
+        &fairshare::instruction::CreateEvent {
+            event_id,
+            fixed: FIXED,
+            per_head: PER_HEAD,
+            margin_bps: MARGIN_BPS,
+            p_min: P_MIN,
+            p_max: P_MAX,
+            n_min: 2,
+            n_max: 5,
+            deadline: -1,
+        }
+        .data(),
+        fairshare::accounts::CreateEvent {
+            organiser: organiser.pubkey(),
+            event,
+            vault,
+            mint,
+            token_program: spl_token::ID,
+            system_program: system_program::ID,
+        }
+        .to_account_metas(None),
+    );
+
+    assert!(
+        send(&mut svm, &organiser, &[ix], &[]).is_err(),
+        "a deadline in the past should be rejected at creation"
+    );
+}
+
+#[test]
 fn double_join_is_rejected() {
     let (mut svm, organiser, mint) = setup();
     let (event, vault) = create_event(
@@ -502,6 +549,12 @@ fn vault_invariant_holds_after_full_settlement() {
         );
         let balance_after = get_token_balance(&svm, attendee_token_account);
         total_refunded += balance_after - balance_before;
+
+        let ticket = ticket_pda(&event, &attendee.pubkey());
+        assert!(
+            svm.get_account(&ticket).is_none(),
+            "ticket should be closed (rent reclaimed) after its refund is claimed"
+        );
     }
 
     let organiser_token_account =
@@ -510,10 +563,9 @@ fn vault_invariant_holds_after_full_settlement() {
     let organiser_received = get_token_balance(&svm, &organiser_token_account);
     assert_eq!(organiser_received, 10 * final_price);
 
-    assert_eq!(
-        get_token_balance(&svm, &vault),
-        0,
-        "vault should be exactly drained after full settlement"
+    assert!(
+        svm.get_account(&vault).is_none(),
+        "vault should be closed (rent reclaimed) once every refund was claimed before withdraw"
     );
     assert_eq!(
         total_refunded + organiser_received,

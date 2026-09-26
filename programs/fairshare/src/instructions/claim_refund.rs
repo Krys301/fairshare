@@ -9,6 +9,7 @@ use crate::{
 
 #[derive(Accounts)]
 pub struct ClaimRefund<'info> {
+    #[account(mut)]
     pub attendee: Signer<'info>,
 
     #[account(
@@ -29,6 +30,7 @@ pub struct ClaimRefund<'info> {
 
     #[account(
         mut,
+        close = attendee,
         constraint = ticket.attendee == attendee.key() @ ErrorCode::Unauthorized,
         seeds = [TICKET_SEED, event.key().as_ref(), attendee.key().as_ref()],
         bump = ticket.bump,
