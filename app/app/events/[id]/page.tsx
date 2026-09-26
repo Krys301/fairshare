@@ -1,4 +1,5 @@
-import { CalendarDays, MapPin, User } from "lucide-react";
+import { CalendarDays, MapPin, MonitorPlay, User } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventActions } from "@/components/EventActions";
 import { PriceCurveChart } from "@/components/PriceCurveChart";
@@ -51,6 +52,14 @@ export default async function EventPage(props: PageProps<"/events/[id]">) {
             <span>Organised by {shorten(event.organiser)}</span>
           </div>
         </div>
+
+        <Link
+          href={`/events/${event.id}/present`}
+          className="mt-3 inline-flex items-center gap-2 text-sm text-accent hover:underline"
+        >
+          <MonitorPlay size={16} />
+          Open presenter view
+        </Link>
       </div>
 
       <EventActions initialEvent={event} />
