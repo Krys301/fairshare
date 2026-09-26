@@ -36,11 +36,11 @@ Chain track: stages 1 to 4. App track: stage 5 runs in parallel with 1 to 4. Bot
 
 ## Stage 2: create_event, join, finalize (chain)
 
-- [ ] State: `Event`, `Ticket` accounts as in the PRD; `EventStatus` enum (Open, Finalised, Cancelled)
-- [ ] `create_event`: validates params, creates Event PDA and USDC vault owned by a PDA
-- [ ] `join`: computes price(count + 1), transfers USDC from attendee to vault, creates Ticket PDA (prevents double join), increments count; rejects if not Open, past deadline, or full
-- [ ] `finalize`: callable by anyone after deadline or at capacity; sets Finalised + final_price, or Cancelled if below n_min
-- [ ] Tests on local validator with a test USDC mint: create, 3 joins with decreasing price, double-join rejected, join after deadline rejected, finalize both paths
+- [x] State: `Event`, `Ticket` accounts as in the PRD; `EventStatus` enum (Open, Finalised, Cancelled)
+- [x] `create_event`: validates params, creates Event PDA and USDC vault owned by a PDA
+- [x] `join`: computes price(count + 1), transfers USDC from attendee to vault, creates Ticket PDA (prevents double join), increments count; rejects if not Open, past deadline, or full
+- [x] `finalize`: callable by anyone after deadline or at capacity; sets Finalised + final_price, or Cancelled if below n_min
+- [x] Tests on local validator with a test USDC mint: create, 3 joins with decreasing price, double-join rejected, join after deadline rejected, finalize both paths
 
 **Done when:** `anchor test` passes. Tag `stage-2`.
 
