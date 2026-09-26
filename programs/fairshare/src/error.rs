@@ -28,4 +28,12 @@ pub enum ErrorCode {
     CannotFinalizeYet,
     #[msg("Token account mint does not match the event's mint")]
     WrongMint,
+    #[msg("Event must be Finalised or Cancelled to claim a refund")]
+    NotClaimable,
+    #[msg("Refund has already been claimed")]
+    AlreadyClaimed,
+    #[msg("Event must be Finalised to withdraw")]
+    EventNotFinalized,
+    #[msg("Organiser has already withdrawn")]
+    AlreadyWithdrawn,
 }

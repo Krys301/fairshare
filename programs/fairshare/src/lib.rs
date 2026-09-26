@@ -49,4 +49,12 @@ pub mod fairshare {
     pub fn finalize(ctx: Context<Finalize>) -> Result<()> {
         crate::instructions::finalize::handle_finalize(ctx)
     }
+
+    pub fn claim_refund(ctx: Context<ClaimRefund>) -> Result<()> {
+        crate::instructions::claim_refund::handle_claim_refund(ctx)
+    }
+
+    pub fn withdraw(ctx: Context<Withdraw>) -> Result<()> {
+        crate::instructions::withdraw::handle_withdraw(ctx)
+    }
 }

@@ -223,6 +223,72 @@ fn get_ticket(svm: &LiteSVM, ticket: &Pubkey) -> Ticket {
     Ticket::try_deserialize(&mut data).unwrap()
 }
 
+fn get_token_balance(svm: &LiteSVM, token_account: &Pubkey) -> u64 {
+    let account = svm.get_account(token_account).unwrap();
+    let mut data: &[u8] = &account.data;
+    TokenAccount::try_deserialize(&mut data).unwrap().amount
+}
+
+fn ticket_pda(event: &Pubkey, attendee: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(
+        &[TICKET_SEED, event.as_ref(), attendee.as_ref()],
+        &fairshare::id(),
+    )
+    .0
+}
+
+fn claim_refund(
+    svm: &mut LiteSVM,
+    attendee: &Keypair,
+    event: &Pubkey,
+    vault: &Pubkey,
+    attendee_token_account: &Pubkey,
+) -> TransactionResult {
+    let program_id = fairshare::id();
+    let ticket = ticket_pda(event, &attendee.pubkey());
+
+    let ix = Instruction::new_with_bytes(
+        program_id,
+        &fairshare::instruction::ClaimRefund {}.data(),
+        fairshare::accounts::ClaimRefund {
+            attendee: attendee.pubkey(),
+            event: *event,
+            vault: *vault,
+            attendee_token_account: *attendee_token_account,
+            ticket,
+            token_program: spl_token::ID,
+        }
+        .to_account_metas(None),
+    );
+
+    send(svm, attendee, &[ix], &[])
+}
+
+fn withdraw(
+    svm: &mut LiteSVM,
+    organiser: &Keypair,
+    event: &Pubkey,
+    vault: &Pubkey,
+    organiser_token_account: &Pubkey,
+) -> TransactionResult {
+    let program_id = fairshare::id();
+
+    let ix = Instruction::new_with_bytes(
+        program_id,
+        &fairshare::instruction::Withdraw {}.data(),
+        fairshare::accounts::Withdraw {
+            organiser: organiser.pubkey(),
+            event: *event,
+            vault: *vault,
+            organiser_token_account: *organiser_token_account,
+            token_program: spl_token::ID,
+        }
+        .to_account_metas(None),
+    );
+
+    send(svm, organiser, &[ix], &[])
+}
+
 fn new_attendee(svm: &mut LiteSVM, organiser: &Keypair, mint: &Pubkey, funding: u64) -> (Keypair, Pubkey) {
     let attendee = Keypair::new();
     svm.airdrop(&attendee.pubkey(), 1_000_000_000).unwrap();
@@ -346,6 +412,122 @@ fn finalize_finalises_when_above_n_min() {
     let event_state = get_event(&svm, &event);
     assert_eq!(event_state.status, EventStatus::Finalised);
     assert_eq!(event_state.final_price, last_amount);
+}
+
+#[test]
+fn claim_refund_rejects_double_claim() {
+    let (mut svm, organiser, mint) = setup();
+    let (event, vault) = create_event(
+        &mut svm, &organiser, &mint, 1, FIXED, PER_HEAD, MARGIN_BPS, P_MIN, P_MAX, 1, 5, 50,
+    );
+
+    let (attendee, attendee_token_account) = new_attendee(&mut svm, &organiser, &mint, FUNDING);
+    assert!(join(&mut svm, &attendee, &event, &vault, &attendee_token_account).is_ok());
+
+    set_clock(&mut svm, 100);
+    assert!(finalize(&mut svm, &organiser, &event).is_ok());
+
+    assert!(claim_refund(&mut svm, &attendee, &event, &vault, &attendee_token_account).is_ok());
+    assert!(
+        claim_refund(&mut svm, &attendee, &event, &vault, &attendee_token_account).is_err(),
+        "second claim should have been rejected"
+    );
+}
+
+#[test]
+fn cancelled_event_refunds_full_deposit() {
+    let (mut svm, organiser, mint) = setup();
+    let (event, vault) = create_event(
+        &mut svm, &organiser, &mint, 1, FIXED, PER_HEAD, MARGIN_BPS, P_MIN, P_MAX, 5, 10, 50,
+    );
+
+    let mut attendees = Vec::new();
+    for _ in 0..2 {
+        let (attendee, attendee_token_account) = new_attendee(&mut svm, &organiser, &mint, FUNDING);
+        assert!(join(&mut svm, &attendee, &event, &vault, &attendee_token_account).is_ok());
+        let ticket = ticket_pda(&event, &attendee.pubkey());
+        let amount_paid = get_ticket(&svm, &ticket).amount_paid;
+        attendees.push((attendee, attendee_token_account, amount_paid));
+    }
+
+    set_clock(&mut svm, 100);
+    assert!(finalize(&mut svm, &organiser, &event).is_ok());
+    assert_eq!(get_event(&svm, &event).status, EventStatus::Cancelled);
+
+    for (attendee, attendee_token_account, amount_paid) in &attendees {
+        let balance_before = get_token_balance(&svm, attendee_token_account);
+        assert!(claim_refund(&mut svm, attendee, &event, &vault, attendee_token_account).is_ok());
+        let balance_after = get_token_balance(&svm, attendee_token_account);
+        assert_eq!(
+            balance_after - balance_before,
+            *amount_paid,
+            "cancelled event should refund the full deposit"
+        );
+    }
+
+    assert_eq!(get_token_balance(&svm, &vault), 0);
+}
+
+#[test]
+fn vault_invariant_holds_after_full_settlement() {
+    let (mut svm, organiser, mint) = setup();
+    let (event, vault) = create_event(
+        &mut svm, &organiser, &mint, 1, FIXED, PER_HEAD, MARGIN_BPS, P_MIN, P_MAX, 5, 10, 50,
+    );
+
+    let mut attendees = Vec::new();
+    let mut total_deposited: u64 = 0;
+    let mut last_amount = 0;
+    for _ in 0..10 {
+        let (attendee, attendee_token_account) = new_attendee(&mut svm, &organiser, &mint, FUNDING);
+        assert!(join(&mut svm, &attendee, &event, &vault, &attendee_token_account).is_ok());
+        let ticket = ticket_pda(&event, &attendee.pubkey());
+        let amount_paid = get_ticket(&svm, &ticket).amount_paid;
+        total_deposited += amount_paid;
+        last_amount = amount_paid;
+        attendees.push((attendee, attendee_token_account));
+    }
+
+    set_clock(&mut svm, 100);
+    assert!(finalize(&mut svm, &organiser, &event).is_ok());
+    let final_price = get_event(&svm, &event).final_price;
+    assert_eq!(final_price, last_amount);
+
+    let mut total_refunded: u64 = 0;
+    for (attendee, attendee_token_account) in &attendees {
+        let balance_before = get_token_balance(&svm, attendee_token_account);
+        assert!(
+            claim_refund(&mut svm, attendee, &event, &vault, attendee_token_account).is_ok(),
+            "claim_refund should succeed for every attendee"
+        );
+        let balance_after = get_token_balance(&svm, attendee_token_account);
+        total_refunded += balance_after - balance_before;
+    }
+
+    let organiser_token_account =
+        create_token_account(&mut svm, &organiser, &mint, &organiser.pubkey());
+    assert!(withdraw(&mut svm, &organiser, &event, &vault, &organiser_token_account).is_ok());
+    let organiser_received = get_token_balance(&svm, &organiser_token_account);
+    assert_eq!(organiser_received, 10 * final_price);
+
+    assert_eq!(
+        get_token_balance(&svm, &vault),
+        0,
+        "vault should be exactly drained after full settlement"
+    );
+    assert_eq!(
+        total_refunded + organiser_received,
+        total_deposited,
+        "refunds plus the organiser's withdrawal must sum exactly to what was deposited"
+    );
+
+    // A second withdrawal attempt must be rejected.
+    let second_organiser_account =
+        create_token_account(&mut svm, &organiser, &mint, &organiser.pubkey());
+    assert!(
+        withdraw(&mut svm, &organiser, &event, &vault, &second_organiser_account).is_err(),
+        "withdrawing twice should be rejected"
+    );
 }
 
 #[test]
