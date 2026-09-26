@@ -11,6 +11,7 @@ test-ledger
 .next
 .env
 .env.*
+!.env*.example
 
 # never commit keypairs
 *id.json

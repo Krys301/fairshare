@@ -1,6 +1,10 @@
 import { EventCard } from "@/components/EventCard";
 import { listEvents } from "@/lib/api";
 
+// Onchain data changes constantly and devnet reads shouldn't happen at build
+// time, so this page is always server-rendered on request, never prerendered.
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const events = await listEvents();
 

@@ -1,9 +1,30 @@
+"use client";
+
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { listMyTickets } from "@/lib/api";
 import { formatAmount } from "@/lib/pricing";
+import type { FairshareEvent, Ticket } from "@/lib/types";
 
-export default async function MyTicketsPage() {
-  const tickets = await listMyTickets();
+export default function MyTicketsPage() {
+  const wallet = useAnchorWallet();
+  const [tickets, setTickets] = useState<Array<Ticket & { event: FairshareEvent }> | null>(null);
+
+  useEffect(() => {
+    if (!wallet) {
+      // Nothing to reset: the render below checks `!wallet` before `tickets`,
+      // so any stale data here is never shown once disconnected.
+      return;
+    }
+    let cancelled = false;
+    listMyTickets(wallet).then((result) => {
+      if (!cancelled) setTickets(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [wallet]);
 
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-6 px-4 py-10">
@@ -14,7 +35,15 @@ export default async function MyTicketsPage() {
         </p>
       </div>
 
-      {tickets.length === 0 ? (
+      {!wallet ? (
+        <div className="rounded-2xl border border-card-border bg-card p-8 text-center text-sm text-muted">
+          Connect your wallet to see your tickets.
+        </div>
+      ) : tickets === null ? (
+        <div className="rounded-2xl border border-card-border bg-card p-8 text-center text-sm text-muted">
+          Loading…
+        </div>
+      ) : tickets.length === 0 ? (
         <div className="rounded-2xl border border-card-border bg-card p-8 text-center text-sm text-muted">
           You haven&apos;t joined any events yet.
         </div>
