@@ -2,6 +2,7 @@ import { CalendarDays, MapPin, User } from "lucide-react";
 import { notFound } from "next/navigation";
 import { EventActions } from "@/components/EventActions";
 import { PriceCurveChart } from "@/components/PriceCurveChart";
+import { SolanaPayQR } from "@/components/SolanaPayQR";
 import { getEvent } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +54,8 @@ export default async function EventPage(props: PageProps<"/events/[id]">) {
       </div>
 
       <EventActions initialEvent={event} />
+
+      {event.status === "Open" && <SolanaPayQR eventId={event.id} />}
 
       <div className="rounded-2xl border border-card-border bg-card p-5">
         <h2 className="text-sm font-medium text-muted">Price curve</h2>
