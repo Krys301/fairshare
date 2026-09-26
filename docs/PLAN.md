@@ -22,10 +22,10 @@ Chain track: stages 1 to 4. App track: stage 5 runs in parallel with 1 to 4. Bot
 
 ## Stage 1: Pricing function (chain)
 
-- [ ] `programs/fairshare/src/pricing.rs` with `pub fn price(n, fixed, per_head, margin_bps, p_min, p_max) -> Result<u64>`
-- [ ] Rounds up, uses checked maths, clamps to [p_min, p_max], errors on n = 0
-- [ ] `pub fn validate_params(...)` rejecting p_max < price(n_min), p_min > p_max, n_min > n_max, zero values
-- [ ] Unit tests: the PRD worked example (50, 100, 200, 400 sign-ups), clamping at both ends, price never increases as n increases (loop n = 1..=1000), organiser revenue n × price(n) ≥ (F + c·n) for every n ≥ n_min
+- [x] `programs/fairshare/src/pricing.rs` with `pub fn price(n, fixed, per_head, margin_bps, p_min, p_max) -> Result<u64>`
+- [x] Rounds up, uses checked maths, clamps to [p_min, p_max], errors on n = 0
+- [x] `pub fn validate_params(...)` rejecting p_max < price(n_min), p_min > p_max, n_min > n_max, zero values
+- [x] Unit tests: the PRD worked example (50, 100, 200, 400 sign-ups), clamping at both ends, price never increases as n increases (loop n = 1..=1000), organiser revenue n × price(n) ≥ (F + c·n) for every n ≥ n_min
 
 **Done when:** `cargo test` passes. Tag `stage-1`.
 
