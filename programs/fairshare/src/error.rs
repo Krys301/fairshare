@@ -18,4 +18,14 @@ pub enum ErrorCode {
     InvalidPriceRange,
     #[msg("p_max is below the price at n_min; the cap would sell below cost")]
     PriceCapBelowCost,
+    #[msg("Event is not open")]
+    EventNotOpen,
+    #[msg("Event deadline has passed")]
+    DeadlinePassed,
+    #[msg("Event is at capacity")]
+    EventAtCapacity,
+    #[msg("Event cannot be finalized yet: deadline not reached and capacity not full")]
+    CannotFinalizeYet,
+    #[msg("Token account mint does not match the event's mint")]
+    WrongMint,
 }

@@ -8,3 +8,12 @@ pub const HELLO_WORLD_LAMPORTS: u64 = 1;
 
 #[constant]
 pub const MAX_COUNT: u64 = 10;
+
+#[constant]
+pub const EVENT_SEED: &[u8] = b"event";
+
+#[constant]
+pub const VAULT_SEED: &[u8] = b"vault";
+
+#[constant]
+pub const TICKET_SEED: &[u8] = b"ticket";
