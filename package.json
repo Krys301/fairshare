@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "seed:devnet": "tsx scripts/seed-demo.ts"
+    "seed:devnet": "tsx scripts/seed-demo.ts",
+    "verify:local": "node scripts/verify-lifecycle.mjs"
   },
   "dependencies": {
     "@anchor-lang/core": "1.2.0",
